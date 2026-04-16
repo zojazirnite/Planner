@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Plānotājs</title>
+  <style>
+    :root {
+      --primary: #15803d;
+      --accent: #10b981;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      color: #111827;
+      background: linear-gradient(135deg,
+        #e0f2e9 0%,
+        #c3e8d8 30%,
+        #a8e6cf 50%,
+        #d1fae5 70%,
+        #e0f2fe 100%);
+      background-attachment: fixed;
+      background-image:
+        radial-gradient(circle at 25% 25%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 75% 65%, rgba(21, 128, 61, 0.07) 0%, transparent 50%),
+        linear-gradient(45deg, transparent 48%, rgba(255,255,255,0.4) 50%, transparent 52%);
+      background-size: 120px 120px, 150px 150px, 80px 80px;
+    }
+    header {
+      text-align: center;
+      margin: 30px 0 40px;
+    }
+    h1 {
+      color: var(--primary);
+      font-size: 2.4rem;
+      margin: 0;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .subtitle {
+      color: #166534;
+      font-size: 1.1rem;
+      margin-top: 8px;
+    }
+    .controls {
+      text-align: center;
+      margin: 25px 0 35px;
+    }
+    button {
+      padding: 12px 22px;
+      font-size: 1.05rem;
+      margin: 0 10px;
+      cursor: pointer;
+      border: 2px solid #86efac;
+      border-radius: 50px;
+      background: white;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background: #86efac;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+    }
+    .calendar {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+    }
+    .day-name {
+      font-weight: 700;
+      padding: 14px;
+      background: rgba(255,255,255,0.85);
+      text-align: center;
+      border-radius: 12px;
+      color: #166534;
+      backdrop-filter: blur(8px);
+    }
+    .day {
+      min-height: 160px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.6);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      position: relative;
+      font-size: 0.97rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .day:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(16, 185, 129, 0.25);
+    }
+    .day.today {
+      background: #fefce8;
+      border-color: #eab308;
+      box-shadow: 0 0 0 3px #fef08c;
+    }
+    .date-num {
+      font-weight: 800;
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+      color: #166534;
+    }
+    .fact {
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: #374151;
+      margin-bottom: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .events {
+      font-size: 0.9rem;
+    }
+    .event {
+      background: #ecfdf5;
+      border-left: 4px solid var(--accent);
+      padding: 6px 10px;
+      margin: 5px 0;
+      border-radius: 6px;
+      position: relative;
+    }
+    .event .del {
+      position: absolute;
+      right: 6px;
+      top: 3px;
+      color: #ef4444;
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+    .add-btn {
+      background: #d1fae5;
+      border: 2px dashed var(--accent);
+      color: #166534;
+      width: 100%;
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      text-align: center;
+      transition: all 0.3s;
+    }
+    .add-btn:hover {
+      background: #a7f3d0;
+    }
+    /* Modālie logi */
+    #eventModal, #factModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(6px);
+    }
+    .modal-content {
+      background: white;
+      padding: 28px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 520px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    .close-btn {
+      position: absolute;
+      right: 20px;
+      top: 16px;
+      font-size: 2rem;
+      cursor: pointer;
+      color: #6b7280;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 2px solid #86efac;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .modal-buttons button {
+      flex: 1;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1.05rem;
+      cursor: pointer;
+    }
+    footer {
+      text-align: center;
+      margin: 60px 0 30px;
+      color: #166534;
+      opacity: 0.8;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Plānotājs</h1>
+  <p class="subtitle">🧬 Bioloģijas entuziastu kalendārs</p>
+</header>
+
+<div class="controls">
+  <button onclick="prevMonth()">« Iepriekšējais</button>
+  <span id="monthTitle" style="font-size:1.6rem; font-weight:700; margin:0 30px; color:#166534;"></span>
+  <button onclick="nextMonth()">Nākamais »</button>
+</div>
+
+<div class="calendar" id="calendar"></div>
+
+<!-- Modal notikumam -->
+<div id="eventModal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeEventModal()">×</span>
+    <h2 id="modalTitle">Jauns notikums</h2>
+    <input type="text" id="eventTitle" placeholder="Notikuma nosaukums (piem. Dentists 15:30)" required>
+    <textarea id="eventDesc" rows="4" placeholder="Papildus informācija..."></textarea>
+    <div class="modal-buttons">
+      <button onclick="saveEvent()" style="background:#10b981; color:white;">Saglabāt</button>
+      <button onclick="closeEventModal()" style="background:#6b7280; color:white;">Atcelt</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal faktam -->
+<div id="factModal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeFactModal()">×</span>
+    <div id="factDate" style="font-weight:700; color:var(--primary); margin-bottom:12px;"></div>
+    <div id="factText" style="font-size:1.2rem; line-height:1.7;"></div>
+  </div>
+</div>
+
+<footer>Organizē savu dienu!</footer>
+
+<script>
+// ==================== BIOLOĢIJAS FAKTI ====================
+const facts = [
+  "Tardigrādes (ūdenslāči) var izdzīvot kosmosā, -272 °C un ārkārtīgi lielā radiācijā.",
+  "Ir medūza Turritopsis dohrnii, kas pēc pilnīgas nobriešanas var atgriezties polipa stadijā — potenciāli nemirstīga.",
+  "Cilvēka ķermenī baktēriju šūnu ir vairāk nekā cilvēka šūnu (aptuveni 1.3 : 1 attiecība).",
+  "Oktapodi atpazīst konkrētus cilvēkus un katram ir unikāla personība.",
+  "Koki caur sēnīšu tīklu (Wood Wide Web) dalās ar barības vielām un brīdina viens otru.",
+  "Plankumainajām hīenām mātītes ir lielākas un dominējošākas par tēviņiem.",
+  "Viena bite savas dzīves laikā saražo tikai aptuveni 1/12 tējkarotes medus.",
+  "Gliemeža zobi satur materiālu, kas ir cietāks par titānu un gandrīz tik ciets kā dimants.",
+  "Aptuveni 8% cilvēka DNS sastāv no seno vīrusu sekvencēm.",
+  "Sēnes veido atsevišķu valsti (Fungi) un ir tuvāk radniecīgas dzīvniekiem nekā augiem."
+];
+
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let selectedDateKey = null;
+
+function getEvents() {
+  return JSON.parse(localStorage.getItem('plannerEvents')) || {};
+}
+
+function saveEvents(events) {
+  localStorage.setItem('plannerEvents', JSON.stringify(events));
+}
+
+function getFullDateStr(year, month, day) {
+  const date = new Date(year, month, day);
+  return date.toLocaleDateString('lv-LV', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+function renderCalendar(year, month) {
+  const calendar = document.getElementById('calendar');
+  const title = document.getElementById('monthTitle');
+  const monthNames = ["Janvāris","Februāris","Marts","Aprīlis","Maijs","Jūnijs","Jūlijs","Augusts","Septembris","Oktobris","Novembris","Decembris"];
+  
+  title.textContent = `${monthNames[month]} ${year}`;
+  calendar.innerHTML = '';
+
+  // Dienu nosaukumi
+  ['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'day-name';
+    el.textContent = d;
+    calendar.appendChild(el);
+  });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+  const events = getEvents();
+
+  // Tukšas dienas
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'day';
+    calendar.appendChild(empty);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayEvents = events[dateKey] || [];
+
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'day';
+    if (isCurrentMonth && d === today.getDate()) dayDiv.classList.add('today');
+
+    dayDiv.onclick = (e) => {
+      if (e.target.closest('.add-btn') || e.target.closest('.del')) return;
+      showFactModal(year, month, d);
+    };
+
+    // Datums
+    const num = document.createElement('div');
+    num.className = 'date-num';
+    num.textContent = d;
+    dayDiv.appendChild(num);
+
+    // Fakts
+    const dayOfYear = Math.floor((new Date(year, month, d) - new Date(year, 0, 1)) / 86400000);
+    const factIdx = dayOfYear % facts.length;
+    const factDiv = document.createElement('div');
+    factDiv.className = 'fact';
+    factDiv.textContent = facts[factIdx];
+    dayDiv.appendChild(factDiv);
+
+    // Notikumi
+    const eventsDiv = document.createElement('div');
+    eventsDiv.className = 'events';
+    dayEvents.forEach((ev, idx) => {
+      const evDiv = document.createElement('div');
+      evDiv.className = 'event';
+      evDiv.innerHTML = `<strong>${ev.title}</strong>${ev.desc ? '<br>' + ev.desc : ''}`;
+      
+      const delBtn = document.createElement('span');
+      delBtn.className = 'del';
+      delBtn.textContent = '×';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm('Dzēst šo notikumu?')) {
+          dayEvents.splice(idx, 1);
+          if (dayEvents.length === 0) delete events[dateKey];
+          else events[dateKey] = dayEvents;
+          saveEvents(events);
+          renderCalendar(year, month);
+        }
+      };
+      evDiv.appendChild(delBtn);
+      eventsDiv.appendChild(evDiv);
+    });
+    dayDiv.appendChild(eventsDiv);
+
+    // Pievienošanas poga
+    const addBtn = document.createElement('div');
+    addBtn.className = 'add-btn';
+    addBtn.textContent = '+ Pievienot notikumu';
+    addBtn.onclick = (e) => {
+      e.stopPropagation();
+      openEventModal(dateKey);
+    };
+    dayDiv.appendChild(addBtn);
+
+    calendar.appendChild(dayDiv);
+  }
+}
+
+// Modālie logi
+function showFactModal(year, month, day) {
+  const dateObj = new Date(year, month, day);
+  const dayOfYear = Math.floor((dateObj - new Date(year, 0, 1)) / 86400000);
+  const factIdx = dayOfYear % facts.length;
+
+  document.getElementById('factDate').textContent = getFullDateStr(year, month, day);
+  document.getElementById('factText').textContent = facts[factIdx];
+  document.getElementById('factModal').style.display = 'flex';
+}
+
+function closeFactModal() {
+  document.getElementById('factModal').style.display = 'none';
+}
+
+function openEventModal(dateKey) {
+  selectedDateKey = dateKey;
+  document.getElementById('eventTitle').value = '';
+  document.getElementById('eventDesc').value = '';
+  document.getElementById('modalTitle').textContent = `Notikums ${dateKey}`;
+  document.getElementById('eventModal').style.display = 'flex';
+}
+
+function closeEventModal() {
+  document.getElementById('eventModal').style.display = 'none';
+}
+
+function saveEvent() {
+  const title = document.getElementById('eventTitle').value.trim();
+  if (!title) return alert('Lūdzu, ievadi notikuma nosaukumu');
+
+  const desc = document.getElementById('eventDesc').value.trim();
+  const events = getEvents();
+  
+  if (!events[selectedDateKey]) events[selectedDateKey] = [];
+  events[selectedDateKey].push({ title, desc });
+  
+  saveEvents(events);
+  closeEventModal();
+  renderCalendar(currentYear, currentMonth);
+}
+
+function prevMonth() {
+  currentMonth--;
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  }
+  renderCalendar(currentYear, currentMonth);
+}
+
+function nextMonth() {
+  currentMonth++;
+  if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+  renderCalendar(currentYear, currentMonth);
+}
+
+// Inicializācija
+renderCalendar(currentYear, currentMonth);
+
+// Escape taustiņš
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeFactModal();
+    closeEventModal();
+  }
+});
+</script>
+</body>
+</html>
